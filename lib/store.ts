@@ -71,6 +71,14 @@ async function db(): Promise<Sql | null> {
   return _sql;
 }
 
+/** Race a promise against a timeout so a slow/hung DB never blocks a request. */
+function withTimeout<T>(p: Promise<T>, ms = 5000): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error("db timeout")), ms)),
+  ]);
+}
+
 const merge = (saved: Partial<ContentDoc> | undefined): ContentDoc => {
   const d = defaults();
   if (!saved) return d;
@@ -79,13 +87,17 @@ const merge = (saved: Partial<ContentDoc> | undefined): ContentDoc => {
 
 /* ---------------- content ---------------- */
 export async function readContent(): Promise<ContentDoc> {
-  // never throw — a DB/fs hiccup must not 500 every page
+  // never throw or hang — a DB/fs hiccup must not 500/stall every page
   try {
-    const sql = await db();
-    if (sql) {
-      const rows = await sql`SELECT doc FROM site_content WHERE id = 1`;
-      return merge(rows[0]?.doc as Partial<ContentDoc> | undefined);
-    }
+    const doc = await withTimeout(
+      (async () => {
+        const sql = await db();
+        if (!sql) return null;
+        const rows = await sql`SELECT doc FROM site_content WHERE id = 1`;
+        return merge(rows[0]?.doc as Partial<ContentDoc> | undefined);
+      })()
+    );
+    if (doc) return doc;
   } catch (e) {
     console.error("[store] readContent DB error — falling back:", e);
   }
@@ -124,12 +136,17 @@ export async function readUpload(
   name: string
 ): Promise<{ mime: string; bytes: Buffer } | null> {
   try {
-    const sql = await db();
-    if (sql) {
-      const rows = await sql`SELECT mime, data FROM uploads WHERE name = ${name}`;
-      if (!rows[0]) return null;
-      return { mime: String(rows[0].mime), bytes: Buffer.from(String(rows[0].data), "base64") };
-    }
+    const hit = await withTimeout(
+      (async () => {
+        const sql = await db();
+        if (!sql) return undefined; // no DB → use fs fallback below
+        const rows = await sql`SELECT mime, data FROM uploads WHERE name = ${name}`;
+        return rows[0]
+          ? { mime: String(rows[0].mime), bytes: Buffer.from(String(rows[0].data), "base64") }
+          : null;
+      })()
+    );
+    if (hit !== undefined) return hit; // null = not found in DB; object = found
   } catch (e) {
     console.error("[store] readUpload DB error:", e);
     return null;
