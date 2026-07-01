@@ -21,8 +21,9 @@ export const NAV = [
 ];
 
 export const SITE = {
-  // Set NEXT_PUBLIC_SITE_URL at deploy (drives canonical, OG, sitemap, robots).
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://uthant.example.com",
+  // Override with NEXT_PUBLIC_SITE_URL at deploy (e.g. a custom domain).
+  // Drives canonical, OpenGraph, sitemap and robots.
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://uthant.onrender.com",
   name: "U Thant",
   tagline: "Kuala Lumpur's most considered address",
 };
