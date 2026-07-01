@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: uthant
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter # a paid plan is required to attach a persistent disk
+    healthCheckPath: /
+    envVars:
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false # set to your domain in the dashboard
+      - key: ADMIN_PASSWORD
+        sync: false # set a strong password in the dashboard
+      - key: ADMIN_SESSION_SECRET
+        generateValue: true
+      - key: DATA_DIR
+        value: /data
+    disk:
+      name: uthant-data
+      mountPath: /data
+      sizeGB: 1
