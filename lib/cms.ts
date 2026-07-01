@@ -18,28 +18,28 @@ export type {
 
 // ---- editable (admin-managed) ----
 export async function getResidences() {
-  return store.readContent().residences;
+  return (await store.readContent()).residences;
 }
 export async function getResidence(slug: string) {
-  return store.readContent().residences.find((r) => r.slug === slug) ?? null;
+  return (await store.readContent()).residences.find((r) => r.slug === slug) ?? null;
 }
 export async function getResidenceSlugs() {
-  return store.readContent().residences.map((r) => r.slug);
+  return (await store.readContent()).residences.map((r) => r.slug);
 }
 export async function getTestimonials() {
-  return store.readContent().testimonials;
+  return (await store.readContent()).testimonials;
 }
 export async function getContact() {
-  return store.readContent().contact;
+  return (await store.readContent()).contact;
 }
 export async function getWhatsApp() {
-  return store.readContent().whatsapp;
+  return (await store.readContent()).whatsapp;
 }
 export async function getHeroTagline() {
-  return store.readContent().heroTagline;
+  return (await store.readContent()).heroTagline;
 }
 export async function getBrochureUrl() {
-  return store.readContent().brochureUrl;
+  return (await store.readContent()).brochureUrl;
 }
 
 // ---- static config ----

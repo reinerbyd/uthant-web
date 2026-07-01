@@ -14,6 +14,8 @@ import ContactCTA from "@/components/ContactCTA";
 import Footer from "@/components/Footer";
 import { getResidences, getHeroTagline, getContact, getWhatsApp } from "@/lib/cms";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   const [residences, heroTagline, contact, whatsapp] = await Promise.all([
     getResidences(),

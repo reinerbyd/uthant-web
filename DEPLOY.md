@@ -10,9 +10,20 @@ writable **data directory** (`DATA_DIR`) — point it at a persistent disk in pr
 | `NEXT_PUBLIC_SITE_URL` | ✅ | Your domain — drives canonical, OpenGraph, sitemap, robots |
 | `ADMIN_PASSWORD` | ✅ | Admin login password (change from the default!) |
 | `ADMIN_SESSION_SECRET` | ✅ | Long random string for the session cookie |
-| `DATA_DIR` | ✅ (prod) | Writable path for `content.json` + `uploads/` (e.g. `/data`) |
+| `DATABASE_URL` | ⭐ recommended | Neon Postgres — persists content + uploads (survives redeploys, even on Free) |
+| `DATA_DIR` | fallback | Writable path used only when `DATABASE_URL` is unset |
 
 See `.env.example`.
+
+## Persistence with Neon (recommended, free)
+
+1. Create a project at **neon.tech** → copy the **connection string**
+   (`postgresql://…?sslmode=require`).
+2. Set it as **`DATABASE_URL`** in Render (or your host). Tables are created
+   automatically on first use.
+3. Now admin content **and** uploads live in Neon — they survive redeploys and
+   need no persistent disk (works on Render Free). Without `DATABASE_URL`, the app
+   falls back to the local filesystem (`DATA_DIR`).
 
 ## Render (recommended — Blueprint)
 

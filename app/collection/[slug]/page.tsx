@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BLUR, WHATSAPP, CONTACT } from "@/lib/content";
-import { getResidence, getResidences, getResidenceSlugs } from "@/lib/cms";
+import { getResidence, getResidences } from "@/lib/cms";
 import SiteNav from "@/components/SiteNav";
 import PageFX from "@/components/PageFX";
 import Footer from "@/components/Footer";
@@ -13,9 +13,7 @@ import Gallery from "@/components/Gallery";
 import MagneticButton from "@/components/MagneticButton";
 import { SITE } from "@/lib/content";
 
-export async function generateStaticParams() {
-  return (await getResidenceSlugs()).map((slug) => ({ slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

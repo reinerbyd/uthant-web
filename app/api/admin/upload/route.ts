@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import fs from "node:fs/promises";
-import path from "node:path";
-import { UPLOADS_DIR } from "@/lib/store";
+import { saveUpload } from "@/lib/store";
 
 const OK_IMAGE = /^image\/(jpeg|png|webp|avif|gif)$/;
 const OK_PDF = /^application\/pdf$/;
@@ -29,9 +27,8 @@ export async function POST(req: Request) {
     .slice(0, 40);
   const name = `${Date.now()}-${safe || "asset"}${ext}`;
 
-  await fs.mkdir(UPLOADS_DIR, { recursive: true });
-  await fs.writeFile(path.join(UPLOADS_DIR, name), Buffer.from(await file.arrayBuffer()));
+  await saveUpload(name, file.type, Buffer.from(await file.arrayBuffer()));
 
-  // served by the /api/uploads/[file] route (reads from the persistent data dir)
+  // served by the /api/uploads/[file] route (from Neon or the data dir)
   return NextResponse.json({ ok: true, url: `/api/uploads/${name}` });
 }

@@ -14,6 +14,9 @@ services:
         generateValue: true
       - key: DATA_DIR
         value: /data
+      # Neon Postgres — persists content + uploads on the Free plan (no disk needed)
+      - key: DATABASE_URL
+        sync: false
       # optional — contact form emails via Resend (leave unset to just log)
       - key: RESEND_API_KEY
         sync: false

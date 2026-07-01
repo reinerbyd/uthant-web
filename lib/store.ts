@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import fsp from "node:fs/promises";
 import path from "node:path";
 import {
   COLLECTION,
@@ -11,12 +12,10 @@ import {
 } from "./content";
 
 /**
- * Editable content store. Reads/writes a JSON document on disk, merged over the
- * code defaults in content.ts. This is the persistence layer the admin panel
- * mutates; `lib/cms.ts` reads from here. (For serverless/production, swap the
- * fs calls for a DB or object store — the shape stays the same.)
+ * Content store. Uses **Neon Postgres** when DATABASE_URL is set (content +
+ * uploads persist across redeploys — ideal for Render Free), otherwise falls
+ * back to the local filesystem for dev. All functions are async.
  */
-/** Per-language overrides for admin-editable content, keyed by content id. */
 export type ContentI18n = {
   cn: Record<string, string>;
   tw: Record<string, string>;
@@ -33,8 +32,6 @@ export type ContentDoc = {
   i18n: ContentI18n;
 };
 
-/** Writable data directory. In production set DATA_DIR to a persistent disk
- *  (e.g. /data on Render/Railway). Defaults to ./data for local dev. */
 export const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 export const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const FILE = path.join(DATA_DIR, "content.json");
@@ -51,17 +48,109 @@ function defaults(): ContentDoc {
   };
 }
 
-export function readContent(): ContentDoc {
+/* ---------------- Neon (lazy, cached) ---------------- */
+const DB_URL = process.env.DATABASE_URL;
+type Sql = (strings: TemplateStringsArray, ...vals: unknown[]) => Promise<Record<string, unknown>[]>;
+let _sql: Sql | null = null;
+let _ready: Promise<void> | null = null;
+
+async function db(): Promise<Sql | null> {
+  if (!DB_URL) return null;
+  if (!_sql) {
+    const { neon } = await import("@neondatabase/serverless");
+    _sql = neon(DB_URL) as unknown as Sql;
+  }
+  if (!_ready) {
+    const sql = _sql;
+    _ready = (async () => {
+      await sql`CREATE TABLE IF NOT EXISTS site_content (id int PRIMARY KEY, doc jsonb NOT NULL)`;
+      await sql`CREATE TABLE IF NOT EXISTS uploads (name text PRIMARY KEY, mime text NOT NULL, data text NOT NULL, created_at timestamptz DEFAULT now())`;
+    })();
+  }
+  await _ready;
+  return _sql;
+}
+
+const merge = (saved: Partial<ContentDoc> | undefined): ContentDoc => {
+  const d = defaults();
+  if (!saved) return d;
+  return { ...d, ...saved, i18n: { ...d.i18n, ...(saved.i18n || {}) } };
+};
+
+/* ---------------- content ---------------- */
+export async function readContent(): Promise<ContentDoc> {
+  // never throw — a DB/fs hiccup must not 500 every page
   try {
-    const saved = JSON.parse(fs.readFileSync(FILE, "utf8"));
-    const d = defaults();
-    return { ...d, ...saved, i18n: { ...d.i18n, ...(saved.i18n || {}) } };
+    const sql = await db();
+    if (sql) {
+      const rows = await sql`SELECT doc FROM site_content WHERE id = 1`;
+      return merge(rows[0]?.doc as Partial<ContentDoc> | undefined);
+    }
+  } catch (e) {
+    console.error("[store] readContent DB error — falling back:", e);
+  }
+  try {
+    return merge(JSON.parse(fs.readFileSync(FILE, "utf8")));
   } catch {
     return defaults();
   }
 }
 
-export function writeContent(doc: ContentDoc): void {
+export async function writeContent(doc: ContentDoc): Promise<void> {
+  const sql = await db();
+  if (sql) {
+    await sql`INSERT INTO site_content (id, doc) VALUES (1, ${JSON.stringify(doc)}::jsonb)
+              ON CONFLICT (id) DO UPDATE SET doc = EXCLUDED.doc`;
+    return;
+  }
   fs.mkdirSync(path.dirname(FILE), { recursive: true });
   fs.writeFileSync(FILE, JSON.stringify(doc, null, 2), "utf8");
+}
+
+/* ---------------- uploads ---------------- */
+export async function saveUpload(name: string, mime: string, bytes: Buffer): Promise<void> {
+  const sql = await db();
+  if (sql) {
+    const data = bytes.toString("base64");
+    await sql`INSERT INTO uploads (name, mime, data) VALUES (${name}, ${mime}, ${data})
+              ON CONFLICT (name) DO UPDATE SET data = EXCLUDED.data, mime = EXCLUDED.mime`;
+    return;
+  }
+  await fsp.mkdir(UPLOADS_DIR, { recursive: true });
+  await fsp.writeFile(path.join(UPLOADS_DIR, name), bytes);
+}
+
+export async function readUpload(
+  name: string
+): Promise<{ mime: string; bytes: Buffer } | null> {
+  try {
+    const sql = await db();
+    if (sql) {
+      const rows = await sql`SELECT mime, data FROM uploads WHERE name = ${name}`;
+      if (!rows[0]) return null;
+      return { mime: String(rows[0].mime), bytes: Buffer.from(String(rows[0].data), "base64") };
+    }
+  } catch (e) {
+    console.error("[store] readUpload DB error:", e);
+    return null;
+  }
+  try {
+    const bytes = await fsp.readFile(path.join(UPLOADS_DIR, name));
+    return { mime: mimeFromExt(path.extname(name)), bytes };
+  } catch {
+    return null;
+  }
+}
+
+export function mimeFromExt(ext: string): string {
+  const t: Record<string, string> = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".avif": "image/avif",
+    ".gif": "image/gif",
+    ".pdf": "application/pdf",
+  };
+  return t[ext.toLowerCase()] || "application/octet-stream";
 }

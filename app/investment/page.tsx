@@ -15,6 +15,8 @@ const STAT_KEY: Record<string, string> = {
   "Price band": "stats.priceBand",
 };
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Investment — U Thant",
   description:

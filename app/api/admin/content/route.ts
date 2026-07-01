@@ -3,14 +3,14 @@ import { revalidatePath } from "next/cache";
 import { readContent, writeContent, type ContentDoc } from "@/lib/store";
 
 export async function GET() {
-  return NextResponse.json(readContent());
+  return NextResponse.json(await readContent());
 }
 
 export async function PUT(req: Request) {
   try {
     const incoming = (await req.json()) as Partial<ContentDoc>;
-    const merged = { ...readContent(), ...incoming };
-    writeContent(merged);
+    const merged = { ...(await readContent()), ...incoming };
+    await writeContent(merged);
 
     // push changes live across the public site
     revalidatePath("/", "layout");
