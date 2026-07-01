@@ -34,6 +34,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 EXPOSE 3000
-VOLUME ["/data"]
+# NOTE: no VOLUME — an anonymous volume makes /data root-owned at runtime, which
+# blocks admin saves on the Free plan. With a real Render/Railway disk mounted at
+# /data this isn't needed. /data stays writable by the nextjs user either way.
 # force bind to 0.0.0.0 at the process level (overrides any injected HOSTNAME)
 CMD ["sh", "-c", "HOSTNAME=0.0.0.0 node server.js"]
