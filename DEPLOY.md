@@ -18,11 +18,15 @@ See `.env.example`.
 
 1. Push this folder to a GitHub repo (its root should be this `web/` app).
 2. In Render → **New → Blueprint**, pick the repo. `render.yaml` provisions a
-   Docker web service **+ a 1 GB persistent disk mounted at `/data`**.
-   *(A persistent disk requires a paid instance type.)*
+   Docker web service on the **Free** plan (no disk).
 3. Set `NEXT_PUBLIC_SITE_URL` and `ADMIN_PASSWORD` in the dashboard
    (`ADMIN_SESSION_SECRET` is auto-generated).
 4. Deploy. Admin panel: `https://your-domain/admin`.
+
+> **Persistence:** the Free plan has no persistent disk, so admin content edits +
+> uploads reset on each redeploy/restart (the site still works from baked-in
+> defaults). To persist them, upgrade to a paid plan and re-add the `disk:` block
+> shown at the bottom of `render.yaml`.
 
 ## Railway
 

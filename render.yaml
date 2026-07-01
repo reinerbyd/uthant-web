@@ -3,7 +3,7 @@ services:
     name: uthant
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter # a paid plan is required to attach a persistent disk
+    plan: free
     healthCheckPath: /
     envVars:
       - key: NEXT_PUBLIC_SITE_URL
@@ -14,7 +14,10 @@ services:
         generateValue: true
       - key: DATA_DIR
         value: /data
-    disk:
-      name: uthant-data
-      mountPath: /data
-      sizeGB: 1
+# NOTE: Free plan has no persistent disk — admin content edits + uploads reset on
+# redeploy/restart (the site still works from baked-in defaults). To make them
+# persist, upgrade to a paid plan and re-add:
+#   disk:
+#     name: uthant-data
+#     mountPath: /data
+#     sizeGB: 1
