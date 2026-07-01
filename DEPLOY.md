@@ -54,8 +54,9 @@ The named volume `uthant-data` persists content + uploads across restarts/redepl
 
 - **Uploads** (admin images/brochure) are stored in `DATA_DIR/uploads` and served via
   `/api/uploads/<file>` — no reliance on the read-only app filesystem.
-- **Contact form** (`/api/contact`) currently logs the enquiry — wire a transport
-  (Resend/SendGrid/CRM/webhook) for real delivery.
+- **Contact form** (`/api/contact`) emails via **Resend** when `RESEND_API_KEY` is
+  set (plus `CONTACT_TO` / `CONTACT_FROM`); otherwise it just logs the enquiry.
+  Verify your domain in Resend and set `CONTACT_FROM` to an address on it.
 - **Imagery** is Unsplash placeholder; swap for licensed photography. To load images
   from a new external host, add it to `images.remotePatterns` in `next.config.mjs`.
 - Vercel/other serverless: the filesystem is read-only, so the admin won't persist —

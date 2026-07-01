@@ -14,6 +14,13 @@ services:
         generateValue: true
       - key: DATA_DIR
         value: /data
+      # optional — contact form emails via Resend (leave unset to just log)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: CONTACT_TO
+        sync: false
+      - key: CONTACT_FROM
+        sync: false
 # NOTE: Free plan has no persistent disk — admin content edits + uploads reset on
 # redeploy/restart (the site still works from baked-in defaults). To make them
 # persist, upgrade to a paid plan and re-add:
