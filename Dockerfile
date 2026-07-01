@@ -33,4 +33,5 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 EXPOSE 3000
 VOLUME ["/data"]
-CMD ["node", "server.js"]
+# force bind to 0.0.0.0 at the process level (overrides any injected HOSTNAME)
+CMD ["sh", "-c", "HOSTNAME=0.0.0.0 node server.js"]
