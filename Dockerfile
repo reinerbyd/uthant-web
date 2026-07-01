@@ -18,6 +18,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+# bind to all interfaces (Docker sets HOSTNAME to the container id, which the
+# Next standalone server would otherwise bind to → unreachable behind Render)
+ENV HOSTNAME=0.0.0.0
 ENV DATA_DIR=/data
 
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
